@@ -41,10 +41,28 @@ class Disc:
         self.velocity *= AIR_DRAG
         print('Throw distance:', self.throw_distance)
 
+
+class HorizontalGridLine:
+    def __init__(self, y):
+        self.y = y
+
+    def display(self, view_port):
+        view_left = (-50 - view_port.x) / view_port.zoom + (view_port.width // 2)
+        view_top = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)    
+        view_width = 100 / view_port.zoom
+        view_height = .1 / view_port.zoom
+        view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
+        pygame.draw.rect(view_port.screen, (0, 0, 255), view_rect)
+
+
+horizontal_grid = []
+for y in range(-200, 0):
+    horizontal_grid.append(HorizontalGridLine(y))
+
 mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
 
 background_colour = (255,255,255)
-(width, height) = (1024, 768)
+(width, height) = (1024, 1500)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
 view_port = ViewPort(800, 600, screen, 0, 0, .01)
@@ -92,6 +110,10 @@ while running:
 
     
     screen.fill(background_colour)
+
+    for line in horizontal_grid:
+        line.display(view_port)
+
     mockingbird.update(ticks)
     mockingbird.display(view_port)
     pygame.display.flip()
