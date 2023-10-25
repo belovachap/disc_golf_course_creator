@@ -28,9 +28,9 @@ class Disc:
         self.throw_distance = 0
 
     def display(self, view_port):
-        view_x = ((self.x * view_port.zoom) - view_port.x) + (view_port.width // 2)
-        view_y = ((self.y * view_port.zoom) - view_port.y) + (view_port.height // 2)
-        view_radius = self.radius * view_port.zoom
+        view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
+        view_y = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)
+        view_radius = self.radius / view_port.zoom
         pygame.draw.circle(view_port.screen, self.color, (view_x, view_y), view_radius)
 
     def update(self, ticks):
@@ -44,10 +44,10 @@ class Disc:
 mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
 
 background_colour = (255,255,255)
-(width, height) = (800, 600)
+(width, height) = (1024, 768)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
-view_port = ViewPort(800, 600, screen, 0, 0, 100)
+view_port = ViewPort(800, 600, screen, 0, 0, .01)
 
 running = True
 clock = pygame.time.Clock()
@@ -59,13 +59,22 @@ while running:
             running = False
         elif event.type == pygame.MOUSEWHEEL:
             print('Mousewheel!', event)
-            view_port.zoom += event.y
+            if event.y > 0:
+                view_port.zoom *= 1.1
+            else:
+                view_port.zoom /= 1.1
+
+            if view_port.zoom < .001:
+                view_port.zoom = .001
+            elif view_port.zoom > .1:
+                view_port.zoom = .1
+
         elif event.type == pygame.MOUSEMOTION:
             if not event.buttons[0]:
                 break 
             print('Mouse motion!', event)
-            view_port.x -= event.rel[0]
-            view_port.y -= event.rel[1]
+            view_port.x -= event.rel[0] * view_port.zoom
+            view_port.y -= event.rel[1] * view_port.zoom
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
