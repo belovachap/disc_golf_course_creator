@@ -38,7 +38,6 @@ class Disc:
 
     def update(self, ticks):
         seconds = ticks / 1000
-        self.throw_distance += self.velocity * seconds
         
         self.x += math.sin(self.velocity_angle) * self.velocity * seconds
         self.y -= math.cos(self.velocity_angle) * self.velocity * seconds
@@ -54,6 +53,37 @@ class Disc:
         self.velocity *= AIR_DRAG
 
         # print('Throw distance:', self.throw_distance)
+
+
+class Throw:
+    def __init__(self, count, disc):
+        self.count = count
+        self.disc = disc
+        self.status = 'next'
+        self.flight_path = []
+        self.distance = 0
+
+    def update(self, ticks):
+        seconds = ticks / 1000
+
+        self.distance += self.disc.velocity * seconds
+
+        if self.disc.velocity < .0001:
+            self.disc.velocity = 0
+
+        if self.disc.velocity > 0:
+            self.flight_path.append((self.disc.x, self.disc.y))
+    
+        self.disc.update(ticks)
+
+    def display(self, view_port):
+        for fp in self.flight_path:
+            view_x = (fp[0] - view_port.x) / view_port.zoom + (view_port.width // 2)
+            view_y = (fp[1] - view_port.y) / view_port.zoom + (view_port.height // 2)
+            view_radius = self.disc.radius / view_port.zoom
+            pygame.draw.circle(view_port.screen, (0, 0, 255), (view_x, view_y), view_radius)
+
+        self.disc.display(view_port) 
 
 
 class Tree:
@@ -122,7 +152,7 @@ for _ in range(0, random.randint(10, 100)):
     radius = random.uniform(.25, 5)
     trees.append(Tree(x, y, radius))
 
-mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
+throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1))
 
 direction_angle_hud = DirectionAngleHUD()
 
@@ -170,14 +200,14 @@ while running:
                 view_port_follows_disc = False
                 view_port.x = 0
                 view_port.y = 0
-                mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
+                throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1))
 
             if event.key == pygame.K_n:
                 print("new map!")
                 view_port_follows_disc = False
                 view_port.x = 0
                 view_port.y = 0
-                mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
+                throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1))
                 basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
                 trees = []
                 for _ in range(0, random.randint(10, 100)):
@@ -189,8 +219,8 @@ while running:
             elif event.key == pygame.K_SPACE:
                 print("throw the disc!")
                 view_port_follows_disc = True
-                mockingbird.velocity_angle = direction_angle_hud.angle
-                mockingbird.velocity = 27 # 27 meters / second is about 60 miles / hour 
+                throw_drive.disc.velocity_angle = direction_angle_hud.angle
+                throw_drive.disc.velocity = 27 # 27 meters / second is about 60 miles / hour 
 
             elif event.key == pygame.K_LEFT:
                 direction_angle_hud.angle -= math.pi / 64
@@ -203,23 +233,23 @@ while running:
                     direction_angle_hud.angle = math.pi / 2
  
     if view_port_follows_disc:
-        view_port.x = mockingbird.x
-        view_port.y = mockingbird.y
+        view_port.x = throw_drive.disc.x
+        view_port.y = throw_drive.disc.y
     
     screen.fill(background_colour)
 
     basket.display(view_port)
-    if collide(mockingbird, basket):
+    if collide(throw_drive.disc, basket):
         print('You hit the basket!!')
 
     for tree in trees:
         tree.display(view_port)
-        if not recent_tree_hit and collide(mockingbird, tree):
+        if not recent_tree_hit and collide(throw_drive.disc, tree):
             print('You hit a tree!')
             recent_tree_hit = True
             invincible_disc_time_limit = random.uniform(.1, 1)
-            mockingbird.velocity_angle += random.uniform(0, 2 * math.pi)
-            mockingbird.velocity *= random.uniform(0, 0.9)
+            throw_drive.disc.velocity_angle += random.uniform(0, 2 * math.pi)
+            throw_drive.disc.velocity *= random.uniform(0, 0.9)
 
     if recent_tree_hit:
         if invincible_disc_time < invincible_disc_time_limit:
@@ -228,8 +258,8 @@ while running:
             invincible_disc_time = 0
             recent_tree_hit = False
 
-    mockingbird.update(ticks)
-    mockingbird.display(view_port)
+    throw_drive.update(ticks)
+    throw_drive.display(view_port)
 
     direction_angle_hud.display(view_port)
 
