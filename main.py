@@ -1,7 +1,10 @@
 import math
 import pygame
+import random
+
 
 AIR_DRAG = 0.996
+
 
 class ViewPort:
     def __init__(self, width, height, screen, x, y, zoom):
@@ -66,9 +69,29 @@ class HorizontalGridLine:
         pygame.draw.rect(view_port.screen, (0, 0, 255), view_rect)
 
 
+class Tree:
+    def __init__(self, x, y, radius):
+        self.x = x
+        self.y = y
+        self.radius = radius
+
+    def display(self, view_port):
+        view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
+        view_y = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)
+        view_radius = self.radius / view_port.zoom
+        pygame.draw.circle(view_port.screen, (0, 255, 0), (view_x, view_y), view_radius)
+
+
 horizontal_grid = []
 for y in range(-200, 0):
     horizontal_grid.append(HorizontalGridLine(y))
+
+trees = []
+for _ in range(0, random.randint(10, 100)):
+    x = random.uniform(-100, 100)
+    y = random.uniform(-200, 10)
+    radius = random.uniform(.25, 5)
+    trees.append(Tree(x, y, radius))
 
 mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
 
@@ -76,7 +99,7 @@ background_colour = (255,255,255)
 (width, height) = (1024, 1500)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
-view_port = ViewPort(800, 600, screen, 0, 0, .01)
+view_port = ViewPort(1024, 1500, screen, 0, 0, .01)
 
 running = True
 clock = pygame.time.Clock()
@@ -110,20 +133,18 @@ while running:
                 print("throw the disc!")
                 mockingbird.velocity = 27 # 27 meters / second is about 60 miles / hour 
             elif event.key == pygame.K_LEFT:
-                print('move left!', view_port.x)
-                view_port.x -= 1
+                mockingbird.velocity_angle -= 1
             elif event.key == pygame.K_RIGHT:
                 view_port.x += 1
-            elif event.key == pygame.K_UP:
-                view_port.y -= 1
-            elif event.key == pygame.K_DOWN:
-                view_port.y += 1
 
     
     screen.fill(background_colour)
 
     for line in horizontal_grid:
         line.display(view_port)
+
+    for tree in trees:
+        tree.display(view_port)
 
     mockingbird.update(ticks)
     mockingbird.display(view_port)
