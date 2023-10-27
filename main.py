@@ -53,7 +53,7 @@ class Disc:
 
         self.velocity *= AIR_DRAG
 
-        print('Throw distance:', self.throw_distance)
+        # print('Throw distance:', self.throw_distance)
 
 
 class HorizontalGridLine:
@@ -96,10 +96,10 @@ for _ in range(0, random.randint(10, 100)):
 mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
 
 background_colour = (255,255,255)
-(width, height) = (1024, 1500)
+(width, height) = (1024, 768)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
-view_port = ViewPort(1024, 1500, screen, 0, 0, .01)
+view_port = ViewPort(width, height, screen, 0, 0, .01)
 
 running = True
 clock = pygame.time.Clock()
@@ -133,10 +133,20 @@ while running:
                 print("throw the disc!")
                 mockingbird.velocity = 27 # 27 meters / second is about 60 miles / hour 
             elif event.key == pygame.K_LEFT:
-                mockingbird.velocity_angle -= 1
-            elif event.key == pygame.K_RIGHT:
-                view_port.x += 1
+                mockingbird.velocity_angle -= math.pi / 32
+                print(math.pi / 32)
+                if mockingbird.velocity_angle < (-1 * math.pi / 4):
+                    mockingbird.velocity_angle = -1 * math.pi / 4
 
+                print('mockingbird.velocity_angle:', mockingbird.velocity_angle)
+
+            elif event.key == pygame.K_RIGHT:
+                mockingbird.velocity_angle += math.pi / 32
+                if mockingbird.velocity_angle > (math.pi / 4):
+                    mockingbird.velocity_angle = math.pi / 4
+
+                print('mockingbird.velocity_angle:', mockingbird.velocity_angle)
+ 
     
     screen.fill(background_colour)
 
