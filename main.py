@@ -82,6 +82,21 @@ class Tree:
         pygame.draw.circle(view_port.screen, (0, 255, 0), (view_x, view_y), view_radius)
 
 
+class Basket:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = 0.27051
+
+    def display(self, view_port):
+        view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
+        view_y = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)
+        view_radius = self.radius / view_port.zoom
+        pygame.draw.circle(view_port.screen, (145, 145, 145), (view_x, view_y), view_radius)
+
+
+basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
+
 horizontal_grid = []
 for y in range(-200, 0):
     horizontal_grid.append(HorizontalGridLine(y))
@@ -152,6 +167,8 @@ while running:
 
     for line in horizontal_grid:
         line.display(view_port)
+
+    basket.display(view_port)
 
     for tree in trees:
         tree.display(view_port)
