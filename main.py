@@ -56,19 +56,6 @@ class Disc:
         # print('Throw distance:', self.throw_distance)
 
 
-class HorizontalGridLine:
-    def __init__(self, y):
-        self.y = y
-
-    def display(self, view_port):
-        view_left = (-50 - view_port.x) / view_port.zoom + (view_port.width // 2)
-        view_top = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)    
-        view_width = 100 / view_port.zoom
-        view_height = .1 / view_port.zoom
-        view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
-        pygame.draw.rect(view_port.screen, (0, 0, 255), view_rect)
-
-
 class Tree:
     def __init__(self, x, y, radius):
         self.x = x
@@ -128,10 +115,6 @@ def collide(p1, p2):
 
 basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
 
-horizontal_grid = []
-for y in range(-200, 0):
-    horizontal_grid.append(HorizontalGridLine(y))
-
 trees = []
 for _ in range(0, random.randint(10, 100)):
     x = random.uniform(-100, 100)
@@ -147,8 +130,9 @@ background_colour = (255,255,255)
 (width, height) = (1024, 768)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
-view_port = ViewPort(width, height, screen, 0, 0, .01)
+view_port = ViewPort(width, height, screen, 0, 0, .1)
 
+view_port_follows_disc = False
 recent_tree_hit = False
 invincible_disc_time = 0
 invincible_disc_time_limit = 0
@@ -176,16 +160,23 @@ while running:
             if not event.buttons[0]:
                 break 
             print('Mouse motion!', event)
+            view_port_follows_disc = False
             view_port.x -= event.rel[0] * view_port.zoom
             view_port.y -= event.rel[1] * view_port.zoom
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 print("reset!")
+                view_port_follows_disc = False
+                view_port.x = 0
+                view_port.y = 0
                 mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
 
             if event.key == pygame.K_n:
                 print("new map!")
+                view_port_follows_disc = False
+                view_port.x = 0
+                view_port.y = 0
                 mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
                 basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
                 trees = []
@@ -197,6 +188,7 @@ while running:
 
             elif event.key == pygame.K_SPACE:
                 print("throw the disc!")
+                view_port_follows_disc = True
                 mockingbird.velocity_angle = direction_angle_hud.angle
                 mockingbird.velocity = 27 # 27 meters / second is about 60 miles / hour 
 
@@ -210,17 +202,16 @@ while running:
                 if direction_angle_hud.angle > (math.pi / 2):
                     direction_angle_hud.angle = math.pi / 2
  
+    if view_port_follows_disc:
+        view_port.x = mockingbird.x
+        view_port.y = mockingbird.y
     
     screen.fill(background_colour)
-
-    for line in horizontal_grid:
-        line.display(view_port)
 
     basket.display(view_port)
     if collide(mockingbird, basket):
         print('You hit the basket!!')
 
-    
     for tree in trees:
         tree.display(view_port)
         if not recent_tree_hit and collide(mockingbird, tree):
