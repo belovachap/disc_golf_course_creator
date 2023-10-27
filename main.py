@@ -95,6 +95,17 @@ class Basket:
         pygame.draw.circle(view_port.screen, (145, 145, 145), (view_x, view_y), view_radius)
 
 
+def collide(p1, p2):
+    dx = p1.x - p2.x
+    dy = p1.y - p2.y
+    
+    distance = math.hypot(dx, dy)
+    if distance < p1.radius + p2.radius:
+        return True
+
+    return False
+
+
 basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
 
 horizontal_grid = []
@@ -116,6 +127,9 @@ pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
 view_port = ViewPort(width, height, screen, 0, 0, .01)
 
+recent_tree_hit = False
+invincible_disc_time = 0
+invincible_disc_time_limit = 0
 running = True
 clock = pygame.time.Clock()
 while running:
@@ -144,6 +158,9 @@ while running:
             view_port.y -= event.rel[1] * view_port.zoom
 
         elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                print("reset!")
+                mockingbird = Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1)
             if event.key == pygame.K_SPACE:
                 print("throw the disc!")
                 mockingbird.velocity = 27 # 27 meters / second is about 60 miles / hour 
@@ -169,9 +186,25 @@ while running:
         line.display(view_port)
 
     basket.display(view_port)
+    if collide(mockingbird, basket):
+        print('You hit the basket!!')
 
+    
     for tree in trees:
         tree.display(view_port)
+        if not recent_tree_hit and collide(mockingbird, tree):
+            print('You hit a tree!')
+            recent_tree_hit = True
+            invincible_disc_time_limit = random.uniform(.1, 1)
+            mockingbird.velocity_angle += random.uniform(0, 2 * math.pi)
+            mockingbird.velocity *= random.uniform(0, 0.9)
+
+    if recent_tree_hit:
+        if invincible_disc_time < invincible_disc_time_limit:
+            invincible_disc_time += ticks / 1000
+        else:
+            invincible_disc_time = 0
+            recent_tree_hit = False
 
     mockingbird.update(ticks)
     mockingbird.display(view_port)
