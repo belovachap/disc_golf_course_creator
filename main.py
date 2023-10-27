@@ -36,9 +36,20 @@ class Disc:
     def update(self, ticks):
         seconds = ticks / 1000
         self.throw_distance += self.velocity * seconds
+        
         self.x += math.sin(self.velocity_angle) * self.velocity * seconds
         self.y -= math.cos(self.velocity_angle) * self.velocity * seconds
+        
+        # Low velocity fade
+        if self.velocity < 10 and self.velocity > 0.1:
+            self.velocity_angle -= (math.pi / 4) * .25 * ((self.fade + 1) / 6) * seconds
+
+        # High velocity turn
+        if self.velocity > 20:
+            self.velocity_angle += (math.pi / 4) * .25 * ((-1 * self.turn + 2) / 7) * seconds
+
         self.velocity *= AIR_DRAG
+
         print('Throw distance:', self.throw_distance)
 
 
