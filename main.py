@@ -31,24 +31,26 @@ class Disc:
         self.throw_distance = 0
 
     def display(self, view_port):
+        print('x, y', self.x, self.y)
         view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
-        view_y = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)
+        view_y = -1 * ((self.y - view_port.y) / view_port.zoom) + (view_port.height // 2)
+        print('view_x, y', view_x, view_y)
         view_radius = self.radius / view_port.zoom
         pygame.draw.circle(view_port.screen, self.color, (view_x, view_y), view_radius)
 
     def update(self, ticks):
         seconds = ticks / 1000
-        
-        self.x += math.sin(self.velocity_angle) * self.velocity * seconds
-        self.y -= math.cos(self.velocity_angle) * self.velocity * seconds
+
+        self.y += math.sin(self.velocity_angle) * self.velocity * seconds        
+        self.x += math.cos(self.velocity_angle) * self.velocity * seconds
         
         # Low velocity fade
         if self.velocity < 10 and self.velocity > 0.1:
-            self.velocity_angle -= (math.pi / 4) * .25 * ((self.fade + 1) / 6) * seconds
+            self.velocity_angle += (math.pi / 4) * .25 * ((self.fade + 1) / 6) * seconds
 
         # High velocity turn
         if self.velocity > 20:
-            self.velocity_angle += (math.pi / 4) * .25 * ((-1 * self.turn + 2) / 7) * seconds
+            self.velocity_angle -= (math.pi / 4) * .25 * ((-1 * self.turn + 2) / 7) * seconds
 
         self.velocity *= AIR_DRAG
 
@@ -56,12 +58,13 @@ class Disc:
 
 
 class Throw:
-    def __init__(self, count, disc):
+    def __init__(self, count, disc, facing_angle):
         self.count = count
         self.disc = disc
         self.status = 'next'
         self.flight_path = []
         self.distance = 0
+        self.facing_angle = facing_angle
 
     def update(self, ticks):
         seconds = ticks / 1000
@@ -79,7 +82,7 @@ class Throw:
     def display(self, view_port):
         for fp in self.flight_path:
             view_x = (fp[0] - view_port.x) / view_port.zoom + (view_port.width // 2)
-            view_y = (fp[1] - view_port.y) / view_port.zoom + (view_port.height // 2)
+            view_y = -1 * ((fp[1] - view_port.y) / view_port.zoom) + (view_port.height // 2)
             view_radius = self.disc.radius / view_port.zoom
             pygame.draw.circle(view_port.screen, (0, 0, 255), (view_x, view_y), view_radius)
 
@@ -94,7 +97,7 @@ class Tree:
 
     def display(self, view_port):
         view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
-        view_y = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)
+        view_y = -1 * ((self.y - view_port.y) / view_port.zoom) + (view_port.height // 2)
         view_radius = self.radius / view_port.zoom
         pygame.draw.circle(view_port.screen, (0, 255, 0), (view_x, view_y), view_radius)
 
@@ -107,7 +110,7 @@ class Basket:
 
     def display(self, view_port):
         view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
-        view_y = (self.y - view_port.y) / view_port.zoom + (view_port.height // 2)
+        view_y = -1 * ((self.y - view_port.y) / view_port.zoom) + (view_port.height // 2)
         view_radius = self.radius / view_port.zoom
         pygame.draw.circle(view_port.screen, (145, 145, 145), (view_x, view_y), view_radius)
 
@@ -143,16 +146,16 @@ def collide(p1, p2):
     return False
 
 
-basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
+basket = Basket(random.uniform(-50, 50), random.uniform(80, 110))
 
 trees = []
 for _ in range(0, random.randint(10, 100)):
     x = random.uniform(-100, 100)
-    y = random.uniform(-200, 10)
+    y = random.uniform(-10, 140)
     radius = random.uniform(.25, 5)
     trees.append(Tree(x, y, radius))
 
-throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1))
+throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1), math.pi / 2)
 
 direction_angle_hud = DirectionAngleHUD()
 
@@ -192,7 +195,7 @@ while running:
             print('Mouse motion!', event)
             view_port_follows_disc = False
             view_port.x -= event.rel[0] * view_port.zoom
-            view_port.y -= event.rel[1] * view_port.zoom
+            view_port.y += event.rel[1] * view_port.zoom
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
@@ -200,14 +203,14 @@ while running:
                 view_port_follows_disc = False
                 view_port.x = 0
                 view_port.y = 0
-                throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1))
+                throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1), math.pi / 2)
 
             if event.key == pygame.K_n:
                 print("new map!")
                 view_port_follows_disc = False
                 view_port.x = 0
                 view_port.y = 0
-                throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1))
+                throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1), math.pi / 2)
                 basket = Basket(random.uniform(-50, 50), random.uniform(-110, -80))
                 trees = []
                 for _ in range(0, random.randint(10, 100)):
@@ -219,7 +222,7 @@ while running:
             elif event.key == pygame.K_SPACE:
                 print("throw the disc!")
                 view_port_follows_disc = True
-                throw_drive.disc.velocity_angle = direction_angle_hud.angle
+                throw_drive.disc.velocity_angle = throw_drive.facing_angle + direction_angle_hud.angle
                 throw_drive.disc.velocity = 27 # 27 meters / second is about 60 miles / hour 
 
             elif event.key == pygame.K_LEFT:
