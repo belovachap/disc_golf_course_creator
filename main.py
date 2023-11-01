@@ -31,10 +31,8 @@ class Disc:
         self.throw_distance = 0
 
     def display(self, view_port):
-        print('x, y', self.x, self.y)
         view_x = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
         view_y = -1 * ((self.y - view_port.y) / view_port.zoom) + (view_port.height // 2)
-        print('view_x, y', view_x, view_y)
         view_radius = self.radius / view_port.zoom
         pygame.draw.circle(view_port.screen, self.color, (view_x, view_y), view_radius)
 
@@ -221,8 +219,12 @@ while running:
 
             elif event.key == pygame.K_SPACE:
                 print("throw the disc!")
+                angle = math.atan2((basket.y - throw_drive.disc.y), (basket.x - throw_drive.disc.x))
+                print('disc.y, x', throw_drive.disc.y, throw_drive.disc.x)
+                print('basket.y, x', basket.y, basket.x)
+                print('angle', angle)
                 view_port_follows_disc = True
-                throw_drive.disc.velocity_angle = throw_drive.facing_angle + direction_angle_hud.angle
+                throw_drive.disc.velocity_angle = angle + direction_angle_hud.angle
                 throw_drive.disc.velocity = 27 # 27 meters / second is about 60 miles / hour 
 
             elif event.key == pygame.K_LEFT:
