@@ -128,7 +128,7 @@ class DirectionAngleHUD:
         pygame.draw.arc(view_port.screen, (0, 0, 0), view_rect, 0, -1 * math.pi, width=2)
         
         center = view_rect.center
-        end_pos = (center[0] + math.sin(self.angle) * 50, center[1] - math.cos(self.angle) * 50) 
+        end_pos = (center[0] - math.sin(self.angle) * 50, center[1] - math.cos(self.angle) * 50) 
 
         pygame.draw.line(view_port.screen, (0, 0, 0), center, end_pos, width=2)
         
@@ -228,14 +228,14 @@ while running:
                 throw_drive.disc.velocity = 27 # 27 meters / second is about 60 miles / hour 
 
             elif event.key == pygame.K_LEFT:
-                direction_angle_hud.angle -= math.pi / 64
-                if direction_angle_hud.angle < (-1 * math.pi / 2):
-                    direction_angle_hud.angle = -1 * math.pi / 2
-
-            elif event.key == pygame.K_RIGHT:
                 direction_angle_hud.angle += math.pi / 64
                 if direction_angle_hud.angle > (math.pi / 2):
                     direction_angle_hud.angle = math.pi / 2
+
+            elif event.key == pygame.K_RIGHT:
+                direction_angle_hud.angle -= math.pi / 64
+                if direction_angle_hud.angle < (-1 * math.pi / 2):
+                    direction_angle_hud.angle = -1 * math.pi / 2
  
     if view_port_follows_disc:
         view_port.x = throw_drive.disc.x
