@@ -131,6 +131,36 @@ class DirectionAngleHUD:
         end_pos = (center[0] - math.sin(self.angle) * 50, center[1] - math.cos(self.angle) * 50) 
 
         pygame.draw.line(view_port.screen, (0, 0, 0), center, end_pos, width=2)
+
+
+class PowerHUD:
+    def __init__(self):
+        self.power = 0
+        self.space_bar_down = False
+
+    def update(self):
+        if not self.space_bar_down:
+            return
+
+        self.power += 1
+
+        if self.power > 100:
+            self.power = 0
+
+    def display(self, view_port):
+        view_left = 150
+        view_top = 650 
+        view_width = 600
+        view_height = 100
+        view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
+        pygame.draw.rect(view_port.screen, (128, 128, 128), view_rect)
+
+        view_left = 150
+        view_top = 650 
+        view_width = 600 * (self.power / 100)
+        view_height = 100
+        view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
+        pygame.draw.rect(view_port.screen, (255, 0, 0), view_rect)
         
 
 def collide(p1, p2):
@@ -156,6 +186,7 @@ for _ in range(0, random.randint(10, 100)):
 throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1), math.pi / 2)
 
 direction_angle_hud = DirectionAngleHUD()
+power_hud = PowerHUD()
 
 background_colour = (255,255,255)
 (width, height) = (1024, 768)
@@ -163,6 +194,7 @@ pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
 view_port = ViewPort(width, height, screen, 0, 0, .1)
 
+space_bar_down = False
 view_port_follows_disc = False
 recent_tree_hit = False
 invincible_disc_time = 0
@@ -195,6 +227,15 @@ while running:
             view_port.x -= event.rel[0] * view_port.zoom
             view_port.y += event.rel[1] * view_port.zoom
 
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_SPACE:
+                power_hud.space_bar_down = False
+                print("throw the disc!")
+                angle = math.atan2((basket.y - throw_drive.disc.y), (basket.x - throw_drive.disc.x))
+                view_port_follows_disc = True
+                throw_drive.disc.velocity_angle = angle + direction_angle_hud.angle
+                throw_drive.disc.velocity = 27 * (power_hud.power / 100) # 27 meters / second is about 60 miles / hour 
+
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 print("reset!")
@@ -218,14 +259,7 @@ while running:
                     trees.append(Tree(x, y, radius))
 
             elif event.key == pygame.K_SPACE:
-                print("throw the disc!")
-                angle = math.atan2((basket.y - throw_drive.disc.y), (basket.x - throw_drive.disc.x))
-                print('disc.y, x', throw_drive.disc.y, throw_drive.disc.x)
-                print('basket.y, x', basket.y, basket.x)
-                print('angle', angle)
-                view_port_follows_disc = True
-                throw_drive.disc.velocity_angle = angle + direction_angle_hud.angle
-                throw_drive.disc.velocity = 27 # 27 meters / second is about 60 miles / hour 
+                power_hud.space_bar_down = True
 
             elif event.key == pygame.K_LEFT:
                 direction_angle_hud.angle += math.pi / 64
@@ -267,5 +301,8 @@ while running:
     throw_drive.display(view_port)
 
     direction_angle_hud.display(view_port)
+
+    power_hud.update()
+    power_hud.display(view_port)
 
     pygame.display.flip()
