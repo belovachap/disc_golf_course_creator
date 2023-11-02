@@ -1,3 +1,4 @@
+from enum import Enum
 import math
 import pygame
 import random
@@ -55,21 +56,31 @@ class Disc:
         # print('Throw distance:', self.throw_distance)
 
 
+class ThrowStatus(Enum):
+    PLANNING = 1
+    FLYING = 2
+    COMPLETE = 3
+
+
 class Throw:
     def __init__(self, count, disc, facing_angle):
         self.count = count
         self.disc = disc
-        self.status = 'next'
+        self.status = ThrowStatus.PLANNING
         self.flight_path = []
         self.distance = 0
         self.facing_angle = facing_angle
 
     def update(self, ticks):
+        if not self.status == ThrowStatus.FLYING:
+            return
+
         seconds = ticks / 1000
 
         self.distance += self.disc.velocity * seconds
 
-        if self.disc.velocity < .0001:
+        if self.disc.velocity < 0.5:
+            self.status = ThrowStatus.COMPLETE
             self.disc.velocity = 0
 
         if self.disc.velocity > 0:
@@ -228,12 +239,12 @@ while running:
             view_port.y += event.rel[1] * view_port.zoom
 
         elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_SPACE:
-                power_hud.space_bar_down = False
+            if event.key == pygame.K_SPACE and throw_drive.status == ThrowStatus.PLANNING:
                 print("throw the disc!")
-                angle = math.atan2((basket.y - throw_drive.disc.y), (basket.x - throw_drive.disc.x))
+                power_hud.space_bar_down = False
+                throw_drive.status = ThrowStatus.FLYING
                 view_port_follows_disc = True
-                throw_drive.disc.velocity_angle = angle + direction_angle_hud.angle
+                throw_drive.disc.velocity_angle = throw_drive.facing_angle + direction_angle_hud.angle
                 throw_drive.disc.velocity = 27 * (power_hud.power / 100) # 27 meters / second is about 60 miles / hour 
 
         elif event.type == pygame.KEYDOWN:
@@ -271,6 +282,13 @@ while running:
                 if direction_angle_hud.angle < (-1 * math.pi / 2):
                     direction_angle_hud.angle = -1 * math.pi / 2
  
+    if throw_drive.status == ThrowStatus.COMPLETE:
+        view_port_follows_disc = False
+        power_hud.power = 0
+        direction_angle_hud.angle = 0
+        facing_angle = math.atan2((basket.y - throw_drive.disc.y), (basket.x - throw_drive.disc.x))
+        throw_drive = Throw(throw_drive.count + 1, throw_drive.disc, facing_angle)
+
     if view_port_follows_disc:
         view_port.x = throw_drive.disc.x
         view_port.y = throw_drive.disc.y
