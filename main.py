@@ -70,6 +70,8 @@ class Throw:
         self.flight_path = []
         self.distance = 0
         self.facing_angle = facing_angle
+        self.starting_x = disc.x
+        self.starting_y = disc.y
 
     def update(self, ticks):
         if not self.status == ThrowStatus.FLYING:
@@ -95,6 +97,19 @@ class Throw:
             view_radius = self.disc.radius / view_port.zoom
             pygame.draw.circle(view_port.screen, (0, 0, 255), (view_x, view_y), view_radius)
 
+        # Draw the "player"
+        view_width = 1 / view_port.zoom
+        view_height = 0.2 / view_port.zoom
+        rect_surf = pygame.Surface((view_width, view_height), pygame.SRCALPHA)
+        rect_surf.fill((128, 128, 128))
+        rotated = pygame.transform.rotate(rect_surf, math.degrees(self.facing_angle - math.pi / 2))
+        view_left = (self.starting_x - view_port.x) / view_port.zoom + (view_port.width // 2)
+        view_top = -1 * ((self.starting_y - view_port.y) / view_port.zoom) + (view_port.height // 2)
+        rotated_rect = rotated.get_rect()
+        view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
+        view_port.screen.blit(rotated, view_rect)
+
+        # Draw the disc
         self.disc.display(view_port) 
 
 
@@ -188,9 +203,9 @@ def collide(p1, p2):
 basket = Basket(random.uniform(-50, 50), random.uniform(80, 110))
 
 trees = []
-for _ in range(0, random.randint(10, 100)):
-    x = random.uniform(-100, 100)
-    y = random.uniform(-10, 140)
+for _ in range(0, random.randint(100, 1000)):
+    x = random.uniform(-320 / 2, 320 / 2)
+    y = random.uniform(-640 / 2, 640 / 2)
     radius = random.uniform(.25, 5)
     trees.append(Tree(x, y, radius))
 
@@ -227,8 +242,8 @@ while running:
 
             if view_port.zoom < .001:
                 view_port.zoom = .001
-            elif view_port.zoom > .1:
-                view_port.zoom = .1
+            elif view_port.zoom > 1:
+                view_port.zoom = 1
 
         elif event.type == pygame.MOUSEMOTION:
             if not event.buttons[0]:
