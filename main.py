@@ -90,7 +90,7 @@ class Throw:
     
         self.disc.update(ticks)
 
-    def display(self, view_port):
+    def display(self, view_port, hud_angle):
         for fp in self.flight_path:
             view_x = (fp[0] - view_port.x) / view_port.zoom + (view_port.width // 2)
             view_y = -1 * ((fp[1] - view_port.y) / view_port.zoom) + (view_port.height // 2)
@@ -102,7 +102,7 @@ class Throw:
         view_height = 0.2 / view_port.zoom
         rect_surf = pygame.Surface((view_width, view_height), pygame.SRCALPHA)
         rect_surf.fill((128, 128, 128))
-        rotated = pygame.transform.rotate(rect_surf, math.degrees(self.facing_angle - math.pi / 2))
+        rotated = pygame.transform.rotate(rect_surf, math.degrees(self.facing_angle + hud_angle - math.pi / 2))
         view_left = (self.starting_x - view_port.x) / view_port.zoom + (view_port.width // 2)
         view_top = -1 * ((self.starting_y - view_port.y) / view_port.zoom) + (view_port.height // 2)
         rotated_rect = rotated.get_rect()
@@ -169,6 +169,8 @@ class Hole:
         self.number = number
         self.tee_pad = tee_pad
         self.basket = basket
+        self.distance = None # TODO: calculate distance from tee_pad to basket
+        self.par = None # TODO: calculate the par based on the distance
         self.status = HoleStatus.UPCOMING
         self.score = None
 
@@ -235,8 +237,24 @@ def collide(p1, p2):
 
 holes = []
 for hole_number in range(1, 19):
-    tee_pad = TeePad(random.uniform(-320 / 2, 320 / 2), random.uniform(-640 / 2, 640 / 2), random.uniform(0, 2 * math.pi))
-    basket = Basket(tee_pad.x + random.uniform(-50, 50), tee_pad.y + random.uniform(-110, 110))
+    tee_pad = TeePad(
+        random.uniform(-320 / 2, 320 / 2),
+        random.uniform(-640 / 2, 640 / 2),
+        random.uniform(0, 2 * math.pi)
+    )
+    
+    print("tee_pad", tee_pad.x, tee_pad.y, math.degrees(tee_pad.facing_angle))
+    # Place the basket down range from the tee pad
+    random_adjust_angle = random.uniform(-1 * math.pi / 4, math.pi / 4)
+    distance = random.uniform(30, 427)
+    print('random_adjust_angle', math.degrees(random_adjust_angle))
+    print('distance', distance)
+    basket_x = math.cos(tee_pad.facing_angle + random_adjust_angle) * distance
+    basket_y = math.sin(tee_pad.facing_angle + random_adjust_angle) * distance
+    print('basket_x, y', basket_x, basket_y)
+    basket = Basket(tee_pad.x + basket_x, tee_pad.y + basket_y)
+    print('basket', basket.x, basket.y)
+
     hole = Hole(hole_number, tee_pad, basket)
     holes.append(hole)
 
@@ -352,6 +370,22 @@ while running:
     
     screen.fill(background_colour)
 
+    for tree in trees:
+        tree.display(view_port)
+        if not recent_tree_hit and collide(throw_drive.disc, tree):
+            print('You hit a tree!')
+            recent_tree_hit = True
+            invincible_disc_time_limit = random.uniform(.1, 1)
+            throw_drive.disc.velocity_angle += random.uniform(0, 2 * math.pi)
+            throw_drive.disc.velocity *= random.uniform(0, 0.9)
+
+    if recent_tree_hit:
+        if invincible_disc_time < invincible_disc_time_limit:
+            invincible_disc_time += ticks / 1000
+        else:
+            invincible_disc_time = 0
+            recent_tree_hit = False
+
     for hole in holes:
         hole.basket.display(view_port)
         hole.tee_pad.display(view_port)
@@ -373,24 +407,8 @@ while running:
         view_port.y = hole.tee_pad.y
         throw_drive = Throw(1, Disc(hole.tee_pad.x, hole.tee_pad.y, 0.12, (255, 0, 0), 7, 5, -2, 1), hole.tee_pad.facing_angle)
 
-    for tree in trees:
-        tree.display(view_port)
-        if not recent_tree_hit and collide(throw_drive.disc, tree):
-            print('You hit a tree!')
-            recent_tree_hit = True
-            invincible_disc_time_limit = random.uniform(.1, 1)
-            throw_drive.disc.velocity_angle += random.uniform(0, 2 * math.pi)
-            throw_drive.disc.velocity *= random.uniform(0, 0.9)
-
-    if recent_tree_hit:
-        if invincible_disc_time < invincible_disc_time_limit:
-            invincible_disc_time += ticks / 1000
-        else:
-            invincible_disc_time = 0
-            recent_tree_hit = False
-
     throw_drive.update(ticks)
-    throw_drive.display(view_port)
+    throw_drive.display(view_port, direction_angle_hud.angle)
 
     direction_angle_hud.display(view_port)
 
