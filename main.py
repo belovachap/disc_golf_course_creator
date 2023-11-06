@@ -174,6 +174,14 @@ class Hole:
         self.status = HoleStatus.UPCOMING
         self.score = None
 
+    def bounding_rect(self):
+        most_left = min(self.tee_pad.x, self.basket.x)
+        most_top = min(self.tee_pad.y, self.basket.y)
+        most_right = max(self.tee_pad.x, self.basket.x)
+        most_bottom = max(self.tee_pad.y, self.basket.y)
+        
+        return pygame.Rect(most_left, most_top, most_right - most_left, most_bottom - most_top)
+
 
 class DirectionAngleHUD:
     def __init__(self):
@@ -235,33 +243,59 @@ def collide(p1, p2):
 
     return False
 
+holes_most_left = None
+holes_most_right = None
+holes_most_top = None
+holes_most_bottom = None
 holes = []
 for hole_number in range(1, 19):
-    tee_pad = TeePad(
-        random.uniform(-320 / 2, 320 / 2),
-        random.uniform(-640 / 2, 640 / 2),
-        random.uniform(0, 2 * math.pi)
-    )
-    
-    print("tee_pad", tee_pad.x, tee_pad.y, math.degrees(tee_pad.facing_angle))
-    # Place the basket down range from the tee pad
-    random_adjust_angle = random.uniform(-1 * math.pi / 4, math.pi / 4)
-    distance = random.uniform(30, 427)
-    print('random_adjust_angle', math.degrees(random_adjust_angle))
-    print('distance', distance)
-    basket_x = math.cos(tee_pad.facing_angle + random_adjust_angle) * distance
-    basket_y = math.sin(tee_pad.facing_angle + random_adjust_angle) * distance
-    print('basket_x, y', basket_x, basket_y)
-    basket = Basket(tee_pad.x + basket_x, tee_pad.y + basket_y)
-    print('basket', basket.x, basket.y)
+    while True:
+        if len(holes) == 0:
+            tee_pad = TeePad(0, 0, random.uniform(0, 2 * math.pi))
+        else:
+            previous_hole = holes[-1]
+            tee_pad = TeePad(
+                previous_hole.basket.x + random.uniform(-30, 30),
+                previous_hole.basket.y + random.uniform(-30, 30),
+                random.uniform(0, 2 * math.pi)
+            )
 
-    hole = Hole(hole_number, tee_pad, basket)
-    holes.append(hole)
+        print("tee_pad", tee_pad.x, tee_pad.y, math.degrees(tee_pad.facing_angle))
+        # Place the basket down range from the tee pad
+        random_adjust_angle = random.uniform(-1 * math.pi / 4, math.pi / 4)
+        distance = random.uniform(30, 427)
+        print('random_adjust_angle', math.degrees(random_adjust_angle))
+        print('distance', distance)
+        basket_x = math.cos(tee_pad.facing_angle + random_adjust_angle) * distance
+        basket_y = math.sin(tee_pad.facing_angle + random_adjust_angle) * distance
+        print('basket_x, y', basket_x, basket_y)
+        basket = Basket(tee_pad.x + basket_x, tee_pad.y + basket_y)
+        print('basket', basket.x, basket.y)
+
+        hole = Hole(hole_number, tee_pad, basket)
+        
+        if hole.bounding_rect().collideobjects(holes, key=lambda o: o.bounding_rect()) is None:
+            bounding_rect = hole.bounding_rect()
+            if len(holes) == 0:
+                holes_most_left = bounding_rect.left
+                holes_most_right = bounding_rect.right
+                holes_most_top = bounding_rect.top
+                holes_most_bottom = bounding_rect.bottom
+            else:
+                holes_most_left = min(holes_most_left, bounding_rect.left)
+                holes_most_right = max(holes_most_right, bounding_rect.right)
+                holes_most_top = min(holes_most_top, bounding_rect.top)
+                holes_most_bottom = max(holes_most_bottom, bounding_rect.bottom)
+
+            holes.append(hole)
+            break
+        else:
+            print('hole collision, try making a different one...')
 
 trees = []
 for _ in range(0, random.randint(100, 1000)):
-    x = random.uniform(-320 / 2, 320 / 2)
-    y = random.uniform(-640 / 2, 640 / 2)
+    x = random.uniform(holes_most_left, holes_most_right)
+    y = random.uniform(holes_most_bottom, holes_most_top)
     radius = random.uniform(.25, 5)
     trees.append(Tree(x, y, radius))
 
