@@ -139,6 +139,40 @@ class Basket:
         pygame.draw.circle(view_port.screen, (145, 145, 145), (view_x, view_y), view_radius)
 
 
+class TeePad:
+    def __init__(self, x, y, facing_angle):
+        self.x = x
+        self.y = y
+        self.facing_angle = facing_angle
+
+    def display(self, view_port):
+        view_width = 1.5 / view_port.zoom
+        view_height = 3 / view_port.zoom
+        rect_surf = pygame.Surface((view_width, view_height), pygame.SRCALPHA)
+        rect_surf.fill((0, 0, 0))
+        rotated = pygame.transform.rotate(rect_surf, math.degrees(self.facing_angle - math.pi / 2))
+        view_left = (self.x - view_port.x) / view_port.zoom + (view_port.width // 2)
+        view_top = -1 * ((self.y - view_port.y) / view_port.zoom) + (view_port.height // 2)
+        rotated_rect = rotated.get_rect()
+        view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
+        view_port.screen.blit(rotated, view_rect)
+
+
+class HoleStatus(Enum):
+    UPCOMING = 1
+    CURRENT = 2
+    COMPLETE = 3
+
+
+class Hole:
+    def __init__(self, number, tee_pad, basket):
+        self.number = number
+        self.tee_pad = tee_pad
+        self.basket = basket
+        self.status = HoleStatus.UPCOMING
+        self.score = None
+
+
 class DirectionAngleHUD:
     def __init__(self):
         self.angle = 0
@@ -199,8 +233,12 @@ def collide(p1, p2):
 
     return False
 
-
-basket = Basket(random.uniform(-50, 50), random.uniform(80, 110))
+holes = []
+for hole_number in range(1, 19):
+    tee_pad = TeePad(random.uniform(-320 / 2, 320 / 2), random.uniform(-640 / 2, 640 / 2), random.uniform(0, 2 * math.pi))
+    basket = Basket(tee_pad.x + random.uniform(-50, 50), tee_pad.y + random.uniform(-110, 110))
+    hole = Hole(hole_number, tee_pad, basket)
+    holes.append(hole)
 
 trees = []
 for _ in range(0, random.randint(100, 1000)):
@@ -209,7 +247,8 @@ for _ in range(0, random.randint(100, 1000)):
     radius = random.uniform(.25, 5)
     trees.append(Tree(x, y, radius))
 
-throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1), math.pi / 2)
+hole = holes[0]
+throw_drive = Throw(1, Disc(hole.tee_pad.x, hole.tee_pad.y, 0.12, (255, 0, 0), 7, 5, -2, 1), hole.tee_pad.facing_angle)
 
 direction_angle_hud = DirectionAngleHUD()
 power_hud = PowerHUD()
@@ -218,8 +257,10 @@ background_colour = (255,255,255)
 (width, height) = (1024, 768)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
-view_port = ViewPort(width, height, screen, 0, 0, .1)
+view_port = ViewPort(width, height, screen, hole.tee_pad.x, hole.tee_pad.y, .1)
 
+current_hole = 1
+holes[current_hole - 1].status = HoleStatus.CURRENT
 space_bar_down = False
 view_port_follows_disc = False
 recent_tree_hit = False
@@ -301,7 +342,8 @@ while running:
         view_port_follows_disc = False
         power_hud.power = 0
         direction_angle_hud.angle = 0
-        facing_angle = math.atan2((basket.y - throw_drive.disc.y), (basket.x - throw_drive.disc.x))
+        hole = holes[current_hole - 1]
+        facing_angle = math.atan2((hole.basket.y - throw_drive.disc.y), (hole.basket.x - throw_drive.disc.x))
         throw_drive = Throw(throw_drive.count + 1, throw_drive.disc, facing_angle)
 
     if view_port_follows_disc:
@@ -310,9 +352,26 @@ while running:
     
     screen.fill(background_colour)
 
-    basket.display(view_port)
-    if collide(throw_drive.disc, basket):
+    for hole in holes:
+        hole.basket.display(view_port)
+        hole.tee_pad.display(view_port)
+
+    hole = holes[current_hole - 1]
+    if collide(throw_drive.disc, hole.basket):
         print('You hit the basket!!')
+        view_port_follows_disc = False
+        power_hud.power = 0
+        direction_angle_hud.angle = 0
+        hole = holes[current_hole - 1]
+        hole.status = HoleStatus.COMPLETE
+        hole.score = throw_drive.count
+
+        current_hole += 1
+        hole = holes[current_hole - 1]
+        hole.status = HoleStatus.CURRENT
+        view_port.x = hole.tee_pad.x
+        view_port.y = hole.tee_pad.y
+        throw_drive = Throw(1, Disc(hole.tee_pad.x, hole.tee_pad.y, 0.12, (255, 0, 0), 7, 5, -2, 1), hole.tee_pad.facing_angle)
 
     for tree in trees:
         tree.display(view_port)
