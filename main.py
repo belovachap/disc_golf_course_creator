@@ -4,6 +4,9 @@ import pygame
 import random
 
 
+pygame.init()
+
+
 AIR_DRAG = 0.996
 
 
@@ -169,8 +172,21 @@ class Hole:
         self.number = number
         self.tee_pad = tee_pad
         self.basket = basket
-        self.distance = None # TODO: calculate distance from tee_pad to basket
-        self.par = None # TODO: calculate the par based on the distance
+        meters = math.dist((tee_pad.x, tee_pad.y), (basket.x, basket.y))
+        print('meters:', meters)
+        self.distance =  int(meters * 3.28084) # Meters to feet with decimal removed.
+        print('feet:', self.distance)
+        if meters < 75:
+            self.par = 2
+        elif meters < 175:
+            self.par = 3
+        elif meters < 320:
+            self.par = 4
+        elif meters < 400:
+            self.par = 5
+        else:
+            self.par = 6
+
         self.status = HoleStatus.UPCOMING
         self.score = None
 
@@ -181,6 +197,35 @@ class Hole:
         most_bottom = max(self.tee_pad.y, self.basket.y)
         
         return pygame.Rect(most_left, most_top, most_right - most_left, most_bottom - most_top)
+
+
+class ScoreCardHUD:
+
+    def display(self, view_port, holes):
+        for hole in holes:
+            label = font.render('Hole:', True, (0, 0, 0))
+            view_port.screen.blit(label, (25, 40))
+            
+            hole_number = font.render(str(hole.number), True, (0, 0, 0))
+            view_port.screen.blit(hole_number, (45 + hole.number * 50, 40))
+            
+            label = font.render('Dist:', True, (0, 0, 0))
+            view_port.screen.blit(label, (25, 60))
+
+            hole_distance = font.render(str(hole.distance), True, (0, 0, 0))
+            view_port.screen.blit(hole_distance, (45 + hole.number * 50, 60))
+
+            label = font.render('Par:', True, (0, 0, 0))
+            view_port.screen.blit(label, (25, 80))
+
+            hole_distance = font.render(str(hole.par), True, (0, 0, 0))
+            view_port.screen.blit(hole_distance, (45 + hole.number * 50, 80))
+
+            label = font.render('Score:', True, (0, 0, 0))
+            view_port.screen.blit(label, (25, 100))
+            if hole.score is not None:
+                hole_score = font.render(str(hole.score), True, (0, 0, 0))
+                view_port.screen.blit(hole_score, (45 + hole.number * 50, 100))
 
 
 class DirectionAngleHUD:
@@ -231,7 +276,94 @@ class PowerHUD:
         view_height = 100
         view_rect = pygame.Rect(view_left, view_top, view_width, view_height)
         pygame.draw.rect(view_port.screen, (255, 0, 0), view_rect)
+
+
+class BasketPointerHUD:
+    def display(self, view_port, hole):
+        # Is the basket on screen?
+        view_port_left = view_port.x - ((view_port.width / 2) * view_port.zoom)
+        view_port_right = view_port.x + ((view_port.width / 2) * view_port.zoom)
+        view_port_top = view_port.y + ((view_port.height / 2) * view_port.zoom)
+        view_port_bottom = view_port.y - ((view_port.height / 2) * view_port.zoom)
+
+        print('view_port_left', view_port_left)
+        print('view_port_right', view_port_right)
+        print('view_port_top', view_port_top)
+        print('view_port_bottom', view_port_bottom)
+
+        if hole.basket.x >= view_port_left and hole.basket.x <= view_port_right:
+            if hole.basket.y >= view_port_bottom and hole.basket.y <= view_port_top:
+                print('basket is in view port')
+                return
+
+        print('basket NOT IN VIEW PORT')
         
+        # Which direction and how far off screen is the basket?
+        offscreen_angle = math.atan2(hole.basket.y - view_port.y, hole.basket.x - view_port.x)
+        
+        boop_x = view_port.width / 2 + math.cos(offscreen_angle) * (view_port.width / 2 - 150)
+        boop_y = view_port.height / 2 - math.sin(offscreen_angle) * (view_port.height / 2 - 150)
+        pointer_label = font.render('Basket', True, (0, 0, 0))
+        view_port.screen.blit(pointer_label, (boop_x, boop_y))
+
+
+class TeePadPointerHUD:
+    def display(self, view_port, hole):
+        # Is the tee pad on screen?
+        view_port_left = view_port.x - ((view_port.width / 2) * view_port.zoom)
+        view_port_right = view_port.x + ((view_port.width / 2) * view_port.zoom)
+        view_port_top = view_port.y + ((view_port.height / 2) * view_port.zoom)
+        view_port_bottom = view_port.y - ((view_port.height / 2) * view_port.zoom)
+
+        print('view_port_left', view_port_left)
+        print('view_port_right', view_port_right)
+        print('view_port_top', view_port_top)
+        print('view_port_bottom', view_port_bottom)
+
+        if hole.tee_pad.x >= view_port_left and hole.tee_pad.x <= view_port_right:
+            if hole.tee_pad.y >= view_port_bottom and hole.tee_pad.y <= view_port_top:
+                print('tee pad is in view port')
+                return
+
+        print('tee pad NOT IN VIEW PORT')
+        
+        # Which direction and how far off screen is the tee pad?
+        offscreen_angle = math.atan2(hole.tee_pad.y - view_port.y, hole.tee_pad.x - view_port.x)
+        
+        boop_x = view_port.width / 2 + math.cos(offscreen_angle) * (view_port.width / 2 - 150)
+        boop_y = view_port.height / 2 - math.sin(offscreen_angle) * (view_port.height / 2 - 150)
+        pointer_label = font.render('Tee Pad', True, (0, 0, 0))
+        view_port.screen.blit(pointer_label, (boop_x, boop_y))
+
+
+class DiscPointerHUD:
+    def display(self, view_port, disc):
+        # Is the tee pad on screen?
+        view_port_left = view_port.x - ((view_port.width / 2) * view_port.zoom)
+        view_port_right = view_port.x + ((view_port.width / 2) * view_port.zoom)
+        view_port_top = view_port.y + ((view_port.height / 2) * view_port.zoom)
+        view_port_bottom = view_port.y - ((view_port.height / 2) * view_port.zoom)
+
+        print('view_port_left', view_port_left)
+        print('view_port_right', view_port_right)
+        print('view_port_top', view_port_top)
+        print('view_port_bottom', view_port_bottom)
+
+        if disc.x >= view_port_left and disc.x <= view_port_right:
+            if disc.y >= view_port_bottom and disc.y <= view_port_top:
+                print('disc is in view port')
+                return
+
+        print('disc NOT IN VIEW PORT')
+        
+        # Which direction and how far off screen is the tee pad?
+        offscreen_angle = math.atan2(disc.y - view_port.y, disc.x - view_port.x)
+        
+        boop_x = view_port.width / 2 + math.cos(offscreen_angle) * (view_port.width / 2 - 180)
+        boop_y = view_port.height / 2 - math.sin(offscreen_angle) * (view_port.height / 2 - 180)
+        pointer_label = font.render('Disc', True, (0, 0, 0))
+        view_port.screen.blit(pointer_label, (boop_x, boop_y))
+
 
 def collide(p1, p2):
     dx = p1.x - p2.x
@@ -310,6 +442,13 @@ background_colour = (255,255,255)
 pygame.display.set_caption('Disc Golf Course Creator')
 screen = pygame.display.set_mode((width, height))
 view_port = ViewPort(width, height, screen, hole.tee_pad.x, hole.tee_pad.y, .1)
+
+font = pygame.font.SysFont('freemono', 18)
+
+score_card_hud = ScoreCardHUD()
+basket_pointer_hud = BasketPointerHUD()
+tee_pad_pointer_hud = TeePadPointerHUD()
+disc_pointer_hud = DiscPointerHUD()
 
 current_hole = 1
 holes[current_hole - 1].status = HoleStatus.CURRENT
@@ -448,5 +587,10 @@ while running:
 
     power_hud.update()
     power_hud.display(view_port)
+
+    score_card_hud.display(view_port, holes)
+    basket_pointer_hud.display(view_port, hole)
+    tee_pad_pointer_hud.display(view_port, hole)
+    disc_pointer_hud.display(view_port, throw_drive.disc)
 
     pygame.display.flip()
