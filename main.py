@@ -56,8 +56,6 @@ class Disc:
 
         self.velocity *= AIR_DRAG
 
-        # print('Throw distance:', self.throw_distance)
-
 
 class ThrowStatus(Enum):
     PLANNING = 1
@@ -173,9 +171,7 @@ class Hole:
         self.tee_pad = tee_pad
         self.basket = basket
         meters = math.dist((tee_pad.x, tee_pad.y), (basket.x, basket.y))
-        print('meters:', meters)
         self.distance =  int(meters * 3.28084) # Meters to feet with decimal removed.
-        print('feet:', self.distance)
         if meters < 75:
             self.par = 2
         elif meters < 175:
@@ -286,17 +282,9 @@ class BasketPointerHUD:
         view_port_top = view_port.y + ((view_port.height / 2) * view_port.zoom)
         view_port_bottom = view_port.y - ((view_port.height / 2) * view_port.zoom)
 
-        print('view_port_left', view_port_left)
-        print('view_port_right', view_port_right)
-        print('view_port_top', view_port_top)
-        print('view_port_bottom', view_port_bottom)
-
         if hole.basket.x >= view_port_left and hole.basket.x <= view_port_right:
             if hole.basket.y >= view_port_bottom and hole.basket.y <= view_port_top:
-                print('basket is in view port')
                 return
-
-        print('basket NOT IN VIEW PORT')
         
         # Which direction and how far off screen is the basket?
         offscreen_angle = math.atan2(hole.basket.y - view_port.y, hole.basket.x - view_port.x)
@@ -315,17 +303,9 @@ class TeePadPointerHUD:
         view_port_top = view_port.y + ((view_port.height / 2) * view_port.zoom)
         view_port_bottom = view_port.y - ((view_port.height / 2) * view_port.zoom)
 
-        print('view_port_left', view_port_left)
-        print('view_port_right', view_port_right)
-        print('view_port_top', view_port_top)
-        print('view_port_bottom', view_port_bottom)
-
         if hole.tee_pad.x >= view_port_left and hole.tee_pad.x <= view_port_right:
             if hole.tee_pad.y >= view_port_bottom and hole.tee_pad.y <= view_port_top:
-                print('tee pad is in view port')
                 return
-
-        print('tee pad NOT IN VIEW PORT')
         
         # Which direction and how far off screen is the tee pad?
         offscreen_angle = math.atan2(hole.tee_pad.y - view_port.y, hole.tee_pad.x - view_port.x)
@@ -344,17 +324,9 @@ class DiscPointerHUD:
         view_port_top = view_port.y + ((view_port.height / 2) * view_port.zoom)
         view_port_bottom = view_port.y - ((view_port.height / 2) * view_port.zoom)
 
-        print('view_port_left', view_port_left)
-        print('view_port_right', view_port_right)
-        print('view_port_top', view_port_top)
-        print('view_port_bottom', view_port_bottom)
-
         if disc.x >= view_port_left and disc.x <= view_port_right:
             if disc.y >= view_port_bottom and disc.y <= view_port_top:
-                print('disc is in view port')
                 return
-
-        print('disc NOT IN VIEW PORT')
         
         # Which direction and how far off screen is the tee pad?
         offscreen_angle = math.atan2(disc.y - view_port.y, disc.x - view_port.x)
@@ -392,17 +364,12 @@ for hole_number in range(1, 19):
                 random.uniform(0, 2 * math.pi)
             )
 
-        print("tee_pad", tee_pad.x, tee_pad.y, math.degrees(tee_pad.facing_angle))
         # Place the basket down range from the tee pad
         random_adjust_angle = random.uniform(-1 * math.pi / 4, math.pi / 4)
         distance = random.uniform(30, 427)
-        print('random_adjust_angle', math.degrees(random_adjust_angle))
-        print('distance', distance)
         basket_x = math.cos(tee_pad.facing_angle + random_adjust_angle) * distance
         basket_y = math.sin(tee_pad.facing_angle + random_adjust_angle) * distance
-        print('basket_x, y', basket_x, basket_y)
         basket = Basket(tee_pad.x + basket_x, tee_pad.y + basket_y)
-        print('basket', basket.x, basket.y)
 
         hole = Hole(hole_number, tee_pad, basket)
         
@@ -421,15 +388,13 @@ for hole_number in range(1, 19):
 
             holes.append(hole)
             break
-        else:
-            print('hole collision, try making a different one...')
 
-trees = []
-for _ in range(0, random.randint(100, 1000)):
+trees = {}
+for i in range(0, 10000):
     x = random.uniform(holes_most_left, holes_most_right)
     y = random.uniform(holes_most_bottom, holes_most_top)
     radius = random.uniform(.25, 5)
-    trees.append(Tree(x, y, radius))
+    trees[i] = Tree(x, y, radius)
 
 hole = holes[0]
 throw_drive = Throw(1, Disc(hole.tee_pad.x, hole.tee_pad.y, 0.12, (255, 0, 0), 7, 5, -2, 1), hole.tee_pad.facing_angle)
@@ -466,7 +431,6 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEWHEEL:
-            print('Mousewheel!', event)
             if event.y > 0:
                 view_port.zoom *= 1.1
             else:
@@ -480,14 +444,12 @@ while running:
         elif event.type == pygame.MOUSEMOTION:
             if not event.buttons[0]:
                 break 
-            print('Mouse motion!', event)
             view_port_follows_disc = False
             view_port.x -= event.rel[0] * view_port.zoom
             view_port.y += event.rel[1] * view_port.zoom
 
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE and throw_drive.status == ThrowStatus.PLANNING:
-                print("throw the disc!")
                 power_hud.space_bar_down = False
                 throw_drive.status = ThrowStatus.FLYING
                 view_port_follows_disc = True
@@ -496,14 +458,12 @@ while running:
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
-                print("reset!")
                 view_port_follows_disc = False
                 view_port.x = 0
                 view_port.y = 0
                 throw_drive = Throw(1, Disc(0, 0, 0.12, (255, 0, 0), 7, 5, -2, 1), math.pi / 2)
 
             if event.key == pygame.K_n:
-                print("new map!")
                 view_port_follows_disc = False
                 view_port.x = 0
                 view_port.y = 0
@@ -543,10 +503,9 @@ while running:
     
     screen.fill(background_colour)
 
-    for tree in trees:
+    for (index, tree) in trees.items():
         tree.display(view_port)
         if not recent_tree_hit and collide(throw_drive.disc, tree):
-            print('You hit a tree!')
             recent_tree_hit = True
             invincible_disc_time_limit = random.uniform(.1, 1)
             throw_drive.disc.velocity_angle += random.uniform(0, 2 * math.pi)
@@ -565,7 +524,6 @@ while running:
 
     hole = holes[current_hole - 1]
     if collide(throw_drive.disc, hole.basket):
-        print('You hit the basket!!')
         view_port_follows_disc = False
         power_hud.power = 0
         direction_angle_hud.angle = 0
